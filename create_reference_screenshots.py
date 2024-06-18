@@ -13,17 +13,12 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 reference_path = os.path.join(base_path, 'reference')
 os.makedirs(reference_path, exist_ok=True)
 
-# Настройка WebDriver
-options = webdriver.ChromeOptions()
-driver = webdriver.Chrome(options=options)
-
 # Список URL сайтов для проверки
 urls = [
     "https://artgroup76.ru",
     "https://print-one.ru",
     "https://interstone.su",
     "https://peachdesign.ru"
-
     # Добавьте все необходимые сайты
 ]
 
@@ -38,7 +33,7 @@ devices = {
 def create_screenshot(url, device_name, device_size):
     driver.set_window_size(*device_size)
     driver.get(url)
-    domain_name = url.replace("https://", "").replace(".", "_")
+    domain_name = url.replace("https://", "").replace("http://", "").replace("/", "_").replace(":", "_").replace(".", "_")
     screenshot_path = os.path.join(reference_path, f'{device_name}_{domain_name}.png')
     print(f"Путь для сохранения скриншота: {screenshot_path}")
     try:

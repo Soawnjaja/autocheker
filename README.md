@@ -31,7 +31,7 @@ author : Wishinskiy A.M
 
 
 author : Wishinskiy A.M
-=======
+
 # autocheker
 py script for check availability sites
->>>>>>> 547ec05ee12a665897736039e80a63c386b71d3b
+
