@@ -36,7 +36,7 @@ def compare_screenshots(reference_path, test_path):
     except FileNotFoundError:
         print(f"Файл не найден: {reference_path}")
         return False
-
+ 
 # Проверка сайтов
 for url in urls:
     for device_name, device_size in devices.items():
