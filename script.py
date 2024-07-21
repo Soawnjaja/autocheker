@@ -1,8 +1,9 @@
 import json
 import os
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
-def collect_website_data(url):
+def collect_website_data(url, save_path):
     options = webdriver.ChromeOptions()
     options.headless = True
     driver = webdriver.Chrome(options=options)
@@ -14,8 +15,8 @@ def collect_website_data(url):
         dom_structure = driver.execute_script("return document.documentElement.outerHTML;")
         
         # Сбор ссылок на JavaScript и CSS файлы
-        scripts = [script.get_attribute('src') for script in driver.find_elements_by_tag_name('script') if script.get_attribute('src')]
-        styles = [link.get_attribute('href') for link in driver.find_elements_by_tag_name('link') if link.get_attribute('rel') == 'stylesheet']
+        scripts = [script.get_attribute('src') for script in driver.find_elements(By.TAG_NAME, 'script') if script.get_attribute('src')]
+        styles = [link.get_attribute('href') for link in driver.find_elements(By.TAG_NAME, 'link') if link.get_attribute('rel') == 'stylesheet']
         
         # Сохранение данных
         data = {
@@ -24,6 +25,16 @@ def collect_website_data(url):
             'scripts': scripts,
             'styles': styles
         }
+        
+        # Создание папки, если она не существует
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        
+        file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
+        file_path = os.path.join(save_path, file_name)
+        
+        with open(file_path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4)
         
         return data
     
@@ -38,7 +49,7 @@ def save_data(data, save_path):
     file_name = f"data_{data['url'].replace('https://', '').replace('http://', '').replace('/', '_')}.json"
     file_path = os.path.join(save_path, file_name)
     
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4)
 
 def load_saved_data(url, save_path):
@@ -46,7 +57,7 @@ def load_saved_data(url, save_path):
     file_path = os.path.join(save_path, file_name)
     
     if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             return json.load(file)
     return None
 
@@ -65,7 +76,7 @@ def log_differences(differences, log_path):
         os.makedirs(log_path)
     
     log_file = os.path.join(log_path, 'differences.log')
-    with open(log_file, 'a') as file:
+    with open(log_file, 'a', encoding='utf-8') as file:
         for key, value in differences.items():
             file.write(f"Difference in {key}:\n")
             file.write(f"Current: {value['current']}\n")
@@ -74,8 +85,15 @@ def log_differences(differences, log_path):
 
 # Массив с URL-адресами сайтов
 urls = [
-    "https://example.com",
-    "https://anotherexample.com",
+    "https://print-one.ru",
+    "https://interstone.su",
+    "https://pandanail44.ru",
+    "https://artkamen.by",
+    "https://siteoffice.ru",
+    "https://2berezki.ru",
+    "https://hostelcharodeyka.ru",
+    "https://polimet44.ru",
+    "https://interstone.su/"
     # Добавьте сюда другие URL
 ]
 
@@ -85,7 +103,7 @@ log_path = "logs"
 
 # Сбор данных для каждого сайта и сравнение с сохраненными данными
 for url in urls:
-    current_data = collect_website_data(url)
+    current_data = collect_website_data(url, save_path)
     saved_data = load_saved_data(url, save_path)
     
     if saved_data:

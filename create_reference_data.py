@@ -1,6 +1,7 @@
 import json
 import os
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 def collect_website_data(url, save_path):
     options = webdriver.ChromeOptions()
@@ -14,8 +15,8 @@ def collect_website_data(url, save_path):
         dom_structure = driver.execute_script("return document.documentElement.outerHTML;")
         
         # Сбор ссылок на JavaScript и CSS файлы
-        scripts = [script.get_attribute('src') for script in driver.find_elements_by_tag_name('script') if script.get_attribute('src')]
-        styles = [link.get_attribute('href') for link in driver.find_elements_by_tag_name('link') if link.get_attribute('rel') == 'stylesheet']
+        scripts = [script.get_attribute('src') for script in driver.find_elements(By.TAG_NAME, 'script') if script.get_attribute('src')]
+        styles = [link.get_attribute('href') for link in driver.find_elements(By.TAG_NAME, 'link') if link.get_attribute('rel') == 'stylesheet']
         
         # Сохранение данных
         data = {
@@ -40,8 +41,14 @@ def collect_website_data(url, save_path):
 
 # Массив с URL-адресами сайтов
 urls = [
-    "https://example.com",
-    "https://anotherexample.com",
+    "https://print-one.ru",
+    "https://interstone.su",
+    "https://pandanail44.ru",
+    "https://artkamen.by",
+    "https://siteoffice.ru",
+    "https://2berezki.ru",
+    "https://hostelcharodeyka.ru",
+    "https://polimet44.ru"
     # Добавьте сюда другие URL
 ]
 
