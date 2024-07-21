@@ -2,45 +2,62 @@ import json
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import hashlib
 import logging
 
-# Configure logging
+# Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class TreeNode:
+    def __init__(self, data, children=[]):
+        self.data = data
+        self.children = children
+    
+    def is_leaf(self):
+        return not self.children
+
+def hash_node(data):
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def hash_tree(node):
+    if node.is_leaf():
+        return hash_node(node.data)
+    else:
+        child_hashes = ''.join(hash_tree(child) for child in node.children)
+        return hash_node(child_hashes)
+
+def build_tree_from_element(element):
+    children = element.find_elements(By.XPATH, "./*")
+    child_nodes = [build_tree_from_element(child) for child in children]
+    return TreeNode(element.tag_name + element.get_attribute('outerHTML'), child_nodes)
 
 def collect_website_data(url):
     options = webdriver.ChromeOptions()
     options.headless = True
-    options.add_argument("--log-level=3")  # Suppress logging
     driver = webdriver.Chrome(options=options)
     
     try:
-        logging.info(f"Collecting data for {url}")
+        logging.info(f"Сбор данных для {url}")
         driver.get(url)
         
-        # Wait for the page to load completely
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+        # Получение корневого элемента DOM
+        root_element = driver.find_element(By.XPATH, '/*')
+        root_node = build_tree_from_element(root_element)
         
-        # Collect DOM structure
-        dom_structure = driver.execute_script("return document.documentElement.outerHTML;")
+        # Хеширование дерева
+        dom_hash = hash_tree(root_node)
         
-        # Collect JavaScript and CSS files
-        scripts = [script.get_attribute('src') for script in driver.find_elements(By.TAG_NAME, 'script') if script.get_attribute('src')]
-        styles = [link.get_attribute('href') for link in driver.find_elements(By.TAG_NAME, 'link') if link.get_attribute('rel') == 'stylesheet']
-        
-        # Save data
+        # Сохранение хеша
         data = {
             'url': url,
-            'dom_structure': dom_structure,
-            'scripts': scripts,
-            'styles': styles
+            'dom_hash': dom_hash
         }
         
+        logging.debug(f"Собранные данные для {url}: {json.dumps(data, indent=4)}")
         return data
     
     except Exception as e:
-        logging.error(f"Error collecting data for {url}: {e}")
+        logging.error(f"Ошибка при сборе данных для {url}: {e}")
         return None
     
     finally:
@@ -50,7 +67,6 @@ def save_data(data, save_path):
     if data is None:
         return
     
-    # Create directory if it doesn't exist
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
@@ -59,19 +75,14 @@ def save_data(data, save_path):
     
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4)
+    
+    logging.info(f"Данные сохранены для {data['url']} по пути {file_path}")
 
-# List of URLs
-urls = [
-    "https://print-one.ru",
-    "https://interstone.su",
-    "https://pandanail44.ru"
-    # Add more URLs here
-]
-
-# Path to save files
+# Список URL-адресов и путь для сохранения файлов
+urls = ["https://print-one.ru", "https://interstone.su", "https://pandanail44.ru"]
 save_path = "references"
 
-# Collect data for each website
+# Сбор данных для каждого сайта и сохранение в качестве эталона
 for url in urls:
-    data = collect_website_data(url)
-    save_data(data, save_path)
+    current_data = collect_website_data(url)
+    save_data(current_data, save_path)
