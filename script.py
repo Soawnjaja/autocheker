@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -31,6 +32,17 @@ def collect_website_data(url):
     finally:
         driver.quit()
 
+def save_data(data, save_path):
+    # Создание папки, если она не существует
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    
+    file_name = f"data_{data['url'].replace('https://', '').replace('http://', '').replace('/', '_')}.json"
+    file_path = os.path.join(save_path, file_name)
+    
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4)
+
 def load_saved_data(url, save_path):
     file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
     file_path = os.path.join(save_path, file_name)
@@ -40,15 +52,14 @@ def load_saved_data(url, save_path):
             return json.load(file)
     return None
 
+def hash_data(data):
+    data_str = json.dumps(data, sort_keys=True)
+    return hashlib.md5(data_str.encode('utf-8')).hexdigest()
+
 def compare_data(current_data, saved_data):
-    differences = {}
-    for key in current_data:
-        if current_data[key] != saved_data[key]:
-            differences[key] = {
-                'current': current_data[key],
-                'saved': saved_data[key]
-            }
-    return differences
+    current_hash = hash_data(current_data)
+    saved_hash = hash_data(saved_data)
+    return current_hash != saved_hash
 
 def log_differences(differences, log_path):
     if not os.path.exists(log_path):
@@ -80,11 +91,12 @@ for url in urls:
     saved_data = load_saved_data(url, save_path)
     
     if saved_data:
-        differences = compare_data(current_data, saved_data)
-        if differences:
+        if compare_data(current_data, saved_data):
             print(f"Changes detected for {url}")
-            log_differences(differences, log_path)
+            log_differences({'current': current_data, 'saved': saved_data}, log_path)
+            save_data(current_data, save_path)  # Обновление сохраненных данных
         else:
             print(f"No changes detected for {url}")
     else:
-        print(f"No saved data found for {url}. Please run the initial data collection script.")
+        print(f"No saved data found for {url}. Saving current data.")
+        save_data(current_data, save_path)

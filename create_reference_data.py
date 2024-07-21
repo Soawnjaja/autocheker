@@ -2,8 +2,9 @@ import json
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+import hashlib
 
-def collect_website_data(url, save_path):
+def collect_website_data(url):
     options = webdriver.ChromeOptions()
     options.headless = True
     driver = webdriver.Chrome(options=options)
@@ -26,18 +27,21 @@ def collect_website_data(url, save_path):
             'styles': styles
         }
         
-        # Создание папки, если она не существует
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        
-        file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
-        file_path = os.path.join(save_path, file_name)
-        
-        with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4)
+        return data
     
     finally:
         driver.quit()
+
+def save_data(data, save_path):
+    # Создание папки, если она не существует
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    
+    file_name = f"data_{data['url'].replace('https://', '').replace('http://', '').replace('/', '_')}.json"
+    file_path = os.path.join(save_path, file_name)
+    
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4)
 
 # Массив с URL-адресами сайтов
 urls = [
@@ -52,4 +56,5 @@ save_path = "references"
 
 # Сбор данных для каждого сайта
 for url in urls:
-    collect_website_data(url, save_path)
+    data = collect_website_data(url)
+    save_data(data, save_path)
