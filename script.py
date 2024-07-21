@@ -1,8 +1,14 @@
 import json
 import os
-import hashlib
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import hashlib
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def collect_website_data(url):
     options = webdriver.ChromeOptions()
@@ -10,16 +16,20 @@ def collect_website_data(url):
     driver = webdriver.Chrome(options=options)
     
     try:
+        logging.info(f"Collecting data for {url}")
         driver.get(url)
         
-        # Сбор DOM-структуры
+        # Wait for the page to load completely
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+        
+        # Collect DOM structure
         dom_structure = driver.execute_script("return document.documentElement.outerHTML;")
         
-        # Сбор ссылок на JavaScript и CSS файлы
+        # Collect JavaScript and CSS files
         scripts = [script.get_attribute('src') for script in driver.find_elements(By.TAG_NAME, 'script') if script.get_attribute('src')]
         styles = [link.get_attribute('href') for link in driver.find_elements(By.TAG_NAME, 'link') if link.get_attribute('rel') == 'stylesheet']
         
-        # Сохранение данных
+        # Save data
         data = {
             'url': url,
             'dom_structure': dom_structure,
@@ -29,11 +39,18 @@ def collect_website_data(url):
         
         return data
     
+    except Exception as e:
+        logging.error(f"Error collecting data for {url}: {e}")
+        return None
+    
     finally:
         driver.quit()
 
 def save_data(data, save_path):
-    # Создание папки, если она не существует
+    if data is None:
+        return
+    
+    # Create directory if it doesn't exist
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
@@ -61,42 +78,41 @@ def compare_data(current_data, saved_data):
     saved_hash = hash_data(saved_data)
     return current_hash != saved_hash
 
-def log_differences(differences, log_path):
+def log_differences(current_data, saved_data, log_path):
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     
     log_file = os.path.join(log_path, 'differences.log')
     with open(log_file, 'a', encoding='utf-8') as file:
-        for key, value in differences.items():
-            file.write(f"Difference in {key}:\n")
-            file.write(f"Current: {value['current']}\n")
-            file.write(f"Saved: {value['saved']}\n")
-            file.write("\n")
+        file.write(f"Difference detected for {current_data['url']}:\n")
+        file.write(f"Current data:\n{json.dumps(current_data, indent=4)}\n")
+        file.write(f"Saved data:\n{json.dumps(saved_data, indent=4)}\n")
+        file.write("\n")
 
-# Массив с URL-адресами сайтов
+# List of URLs
 urls = [
     "https://print-one.ru",
     "https://interstone.su",
     "https://pandanail44.ru"
-    # Добавьте сюда другие URL
+    # Add more URLs here
 ]
 
-# Путь для сохранения файлов
+# Path to save files
 save_path = "references"
 log_path = "logs"
 
-# Сбор данных для каждого сайта и сравнение с сохраненными данными
+# Collect data for each website and compare with saved data
 for url in urls:
     current_data = collect_website_data(url)
     saved_data = load_saved_data(url, save_path)
     
     if saved_data:
         if compare_data(current_data, saved_data):
-            print(f"Changes detected for {url}")
-            log_differences({'current': current_data, 'saved': saved_data}, log_path)
-            save_data(current_data, save_path)  # Обновление сохраненных данных
+            logging.info(f"Changes detected for {url}")
+            log_differences(current_data, saved_data, log_path)
+            save_data(current_data, save_path)  # Update saved data
         else:
-            print(f"No changes detected for {url}")
+            logging.info(f"No changes detected for {url}")
     else:
-        print(f"No saved data found for {url}. Saving current data.")
+        logging.info(f"No saved data found for {url}. Saving current data.")
         save_data(current_data, save_path)
