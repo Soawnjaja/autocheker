@@ -3,7 +3,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-def collect_website_data(url, save_path):
+def collect_website_data(url):
     options = webdriver.ChromeOptions()
     options.headless = True
     driver = webdriver.Chrome(options=options)
@@ -26,31 +26,10 @@ def collect_website_data(url, save_path):
             'styles': styles
         }
         
-        # Создание папки, если она не существует
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        
-        file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
-        file_path = os.path.join(save_path, file_name)
-        
-        with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4)
-        
         return data
     
     finally:
         driver.quit()
-
-def save_data(data, save_path):
-    # Создание папки, если она не существует
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    
-    file_name = f"data_{data['url'].replace('https://', '').replace('http://', '').replace('/', '_')}.json"
-    file_path = os.path.join(save_path, file_name)
-    
-    with open(file_path, 'w', encoding='utf-8') as file:
-        json.dump(data, file, indent=4)
 
 def load_saved_data(url, save_path):
     file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
@@ -87,13 +66,7 @@ def log_differences(differences, log_path):
 urls = [
     "https://print-one.ru",
     "https://interstone.su",
-    "https://pandanail44.ru",
-    "https://artkamen.by",
-    "https://siteoffice.ru",
-    "https://2berezki.ru",
-    "https://hostelcharodeyka.ru",
-    "https://polimet44.ru",
-    "https://interstone.su/"
+    "https://pandanail44.ru"
     # Добавьте сюда другие URL
 ]
 
@@ -103,7 +76,7 @@ log_path = "logs"
 
 # Сбор данных для каждого сайта и сравнение с сохраненными данными
 for url in urls:
-    current_data = collect_website_data(url, save_path)
+    current_data = collect_website_data(url)
     saved_data = load_saved_data(url, save_path)
     
     if saved_data:
@@ -111,9 +84,7 @@ for url in urls:
         if differences:
             print(f"Changes detected for {url}")
             log_differences(differences, log_path)
-            save_data(current_data, save_path)  # Обновление сохраненных данных
         else:
             print(f"No changes detected for {url}")
     else:
-        print(f"No saved data found for {url}. Saving current data.")
-        save_data(current_data, save_path)
+        print(f"No saved data found for {url}. Please run the initial data collection script.")

@@ -33,7 +33,7 @@ def collect_website_data(url, save_path):
         file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
         file_path = os.path.join(save_path, file_name)
         
-        with open(file_path, 'w') as file:
+        with open(file_path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4)
     
     finally:
@@ -43,12 +43,7 @@ def collect_website_data(url, save_path):
 urls = [
     "https://print-one.ru",
     "https://interstone.su",
-    "https://pandanail44.ru",
-    "https://artkamen.by",
-    "https://siteoffice.ru",
-    "https://2berezki.ru",
-    "https://hostelcharodeyka.ru",
-    "https://polimet44.ru"
+    "https://pandanail44.ru"
     # Добавьте сюда другие URL
 ]
 
