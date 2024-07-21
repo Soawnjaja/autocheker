@@ -1,64 +1,51 @@
-import os
-
+import json
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from skimage.metrics import structural_similarity as ssim
-import cv2
 
-# Настройка опций Chrome
-options = webdriver.ChromeOptions()
-options.headless = True 
+def check_website_data(url, reference_data_file):
+    options = webdriver.ChromeOptions()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    
+    results = {'url': url, 'status': True}
+    try:
+        driver.get(url)
+        
+        # Получение текущей DOM-структуры и ресурсов
+        current_dom = driver.execute_script("return document.documentElement.outerHTML;")
+        current_scripts = [script.get_attribute('src') for script in driver.find_elements_by_tag_name('script') if script.get_attribute('src')]
+        current_styles = [link.get_attribute('href') for link in driver.find_elements_by_tag, 'link') if link.get_attribute('rel') == 'stylesheet']
+        
+        # Загрузка эталонных данных
+        with open(reference_data_file, 'r') as file:
+            reference_data = json.load(file)
+        
+        # Сравнение DOM-структуры, скриптов и стилей
+        if current_dom != reference_data['dom_structure'] or \
+           set(current_scripts) != set(reference_data['scripts']) or \
+           set(current_styles) != set(reference_data['styles']):
+            results['status'] = False
+    
+    finally:
+        driver.quit()
+    return results
 
-# Создание экземпляра драйвера
-driver = webdriver.Chrome(options=options)
+def main():
+    websites = [
+        {"url": "https://interstone.su", "data_file": "data_interstone_su.json"},
+        {"url": "https://print-one.ru", "data_file": "data_print_one_ru.json"},
+        {"url": "https://officecrew.ru", "data_file": "data_officecrew_ru.json"}
+    ]
+    
+    results = []
+    for site in websites:
+        result = check_website_data(site['url'], site['data_file'])
+        results.append(result)
+    
+    # Формирование отчета
+    print("Отчет о проверке сайтов:")
+    for result in results:
+        status = "все хорошо" if result['status'] else "есть изменения"
+        print(f"{result['url']}: {status}")
 
-# Путь к главной папке приложения
-base_path = os.path.dirname(os.path.abspath(__file__))
-reference_path = os.path.join(base_path, 'reference')
-screenshots_path = os.path.join(base_path, 'screenshots')
-os.makedirs(reference_path, exist_ok=True)
-os.makedirs(screenshots_path, exist_ok=True)
-
-# Список URL сайтов для проверки
-urls = [
-    "https://print-one.ru",
-    "https://interstone.su"
-]
-
-# Размеры устройств
-devices = {
-    "desktop": (1920, 1080),
-    "tablet": (768, 1024),
-    "mobile": (375, 667),
-}
-
-# Функция для создания и сравнения скриншотов
-def create_and_compare_screenshot(url, device_name, device_size):
-    driver.set_window_size(*device_size)
-    driver.get(url)
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
-    domain_name = url.replace("https://", "").replace("http://", "").replace("/", "_").replace(":", "_").replace(".", "_")
-    screenshot_filename = f'{device_name}_{domain_name}_home.png'
-    screenshot_path = os.path.join(screenshots_path, screenshot_filename)
-    reference_screenshot_path = os.path.join(reference_path, screenshot_filename)
-
-    driver.save_screenshot(screenshot_path)
-    print(f"Скриншот для {url} на устройстве {device_name} сохранен.")
-
-    # Сравнение скриншотов
-    if os.path.exists(reference_screenshot_path):
-        original = cv2.imread(reference_screenshot_path, cv2.IMREAD_GRAYSCALE)
-        new_shot = cv2.imread(screenshot_path, cv2.IMREAD_GRAYSCALE)
-        score, _ = ssim(original, new_shot, full=True)
-        print(f"SSIM score for {url} on {device_name}: {score}")
-    else:
-        print(f"No reference screenshot found for {url} on {device_name}. Please check the reference directory.")
-
-# Создание и сравнение скриншотов
-for url in urls:
-    for device_name, device_size in devices.items():
-        create_and_compare_screenshot(url, device_name, device_size)
-
-driver.quit()
+if __name__ == "__main__":
+    main()
