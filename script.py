@@ -38,7 +38,7 @@ devices = {
 def create_and_compare_screenshot(url, device_name, device_size):
     driver.set_window_size(*device_size)
     driver.get(url)
-    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
     domain_name = url.replace("https://", "").replace("http://", "").replace("/", "_").replace(":", "_").replace(".", "_")
     screenshot_filename = f'{device_name}_{domain_name}_home.png'
     screenshot_path = os.path.join(screenshots_path, screenshot_filename)
