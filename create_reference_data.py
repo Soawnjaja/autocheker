@@ -1,7 +1,8 @@
 import json
+import os
 from selenium import webdriver
 
-def collect_website_data(url):
+def collect_website_data(url, save_path):
     options = webdriver.ChromeOptions()
     options.headless = True
     driver = webdriver.Chrome(options=options)
@@ -23,11 +24,30 @@ def collect_website_data(url):
             'scripts': scripts,
             'styles': styles
         }
-        with open(f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json", 'w') as file:
+        
+        # Создание папки, если она не существует
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        
+        file_name = f"data_{url.replace('https://', '').replace('http://', '').replace('/', '_')}.json"
+        file_path = os.path.join(save_path, file_name)
+        
+        with open(file_path, 'w') as file:
             json.dump(data, file, indent=4)
     
     finally:
         driver.quit()
 
-# Пример использования
-collect_website_data("https://example.com")
+# Массив с URL-адресами сайтов
+urls = [
+    "https://example.com",
+    "https://anotherexample.com",
+    # Добавьте сюда другие URL
+]
+
+# Путь для сохранения файлов
+save_path = "references"
+
+# Сбор данных для каждого сайта
+for url in urls:
+    collect_website_data(url, save_path)
